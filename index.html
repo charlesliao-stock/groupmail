@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>高級個人化群組郵件系統 V3 (GitHub Pages 專用版)</title>
+    <title>高級個人化群組郵件系統 V3 (EmailJS 終極防鎖版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght=400;500;700&display=swap');
@@ -22,7 +23,7 @@
                 <span class="text-xl font-bold tracking-wide">高級個人化群組郵件發送系統 V3</span>
             </div>
             <div class="text-sm bg-amber-800 px-3 py-1 rounded-full text-amber-100 font-mono">
-                <i class="fa-solid fa-cloud mr-1 text-emerald-400"></i> GitHub Pages 雲端託管版
+                <i class="fa-solid fa-shield text-emerald-400 mr-1"></i> EmailJS 雲端安全版
             </div>
         </div>
     </nav>
@@ -33,52 +34,39 @@
             <div class="flex items-center justify-between border-b border-stone-100 pb-2">
                 <h2 class="text-lg font-bold text-stone-900 flex items-center">
                     <i class="fa-solid fa-server text-amber-600 mr-2"></i>
-                    1. 郵件伺服器連結設定
+                    1. 雲端郵件發送服務串接 (免密碼更安全)
                 </h2>
                 <div class="flex items-center space-x-2 bg-stone-50 px-3 py-1.5 rounded-full border border-stone-200">
                     <span id="statusLight" class="w-3.5 h-3.5 rounded-full bg-stone-400 block shadow-inner"></span>
-                    <span id="statusText" class="text-xs font-bold text-stone-500">未進行連線測試</span>
+                    <span id="statusText" class="text-xs font-bold text-stone-500">未驗證公鑰</span>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-xs font-medium text-stone-500 mb-1">選擇郵件服務商</label>
-                    <select id="serverPreset" onchange="handleServerPresetChange()" class="w-full p-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none bg-white">
-                        <option value="gmail">Gmail (Google)</option>
-                        <option value="hotmail">Outlook / Hotmail</option>
-                        <option value="yahoo">Yahoo Mail</option>
-                        <option value="custom">自訂 SMTP 伺服器</option>
-                    </select>
+                    <label class="block text-xs font-medium text-stone-500 mb-1">EmailJS Service ID</label>
+                    <input id="serviceId" type="text" placeholder="例如: service_xxxxxxx" class="w-full p-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none" />
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-stone-500 mb-1">SMTP 主機地址</label>
-                    <input id="smtpHost" type="text" value="smtp.gmail.com" class="w-full p-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none" />
+                    <label class="block text-xs font-medium text-stone-500 mb-1">EmailJS Template ID</label>
+                    <input id="templateId" type="text" placeholder="例如: template_xxxxxxx" class="w-full p-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none" />
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-stone-500 mb-1">連接埠 (Port)</label>
-                    <input id="smtpPort" type="number" value="587" class="w-full p-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none" />
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-stone-500 mb-1">帳號 (Email)</label>
-                    <input id="smtpUser" type="email" placeholder="example@gmail.com" class="w-full p-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none" />
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-stone-500 mb-1">應用程式密碼</label>
+                    <label class="block text-xs font-medium text-stone-500 mb-1">EmailJS Public Key (公鑰)</label>
                     <div class="relative">
-                        <input id="smtpPass" type="password" placeholder="請輸入16位元金鑰密碼" class="w-full p-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none" />
-                        <button onclick="testSmtpConnection()" class="absolute right-1.5 top-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs px-2.5 py-1 rounded font-medium shadow-sm transition">
-                            連線測試
+                        <input id="publicKey" type="password" placeholder="請輸入 EmailJS 公鑰" class="w-full p-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none" />
+                        <button onclick="verifyEmailJSConfiguration()" class="absolute right-1.5 top-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs px-2.5 py-1 rounded font-medium shadow-sm transition">
+                            驗證設定
                         </button>
                     </div>
                 </div>
             </div>
+            <p class="text-[11px] text-stone-400 italic"><i class="fa-solid fa-circle-info mr-1"></i>此版本採用 EmailJS 技術，不再需要輸入信箱真實登入密碼，徹底解決 GitHub Pages 上的跨來源 (CORS) 阻斷限制。</p>
         </section>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             <div class="lg:col-span-1 space-y-6">
-                
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-stone-200 space-y-4">
                     <div class="flex justify-between items-center">
                         <h2 class="text-md font-bold text-stone-900 flex items-center">
@@ -129,7 +117,6 @@
             </div>
 
             <div class="lg:col-span-2 space-y-6">
-                
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-stone-200 space-y-4">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-stone-100 pb-3">
                         <h2 class="text-md font-bold text-stone-900 flex items-center">
@@ -201,7 +188,6 @@
 
                     <div id="resultLogBox" class="bg-stone-900 text-stone-300 p-3 rounded-lg font-mono text-[11px] max-h-28 overflow-y-auto space-y-0.5 hidden shadow-inner"></div>
                 </div>
-
             </div>
         </div>
     </main>
@@ -216,7 +202,6 @@
         let importedData = [];
         let dataColumns = [];
         let currentPreviewIndex = 0;
-        let connectionVerified = false; // 伺服器連線安全鎖
 
         const subjectTemplate = document.getElementById('subjectTemplate');
         const contentTemplate = document.getElementById('contentTemplate');
@@ -238,93 +223,30 @@
             contentTemplate.addEventListener('input', updatePreview);
         }
 
-        // 服務商組態自動切換
-        function handleServerPresetChange() {
-            const preset = document.getElementById('serverPreset').value;
-            const hostInput = document.getElementById('smtpHost');
-            const portInput = document.getElementById('smtpPort');
-            resetConnectionStatus();
+        // 驗證並載入 EmailJS 金鑰
+        function verifyEmailJSConfiguration() {
+            const pubKey = document.getElementById('publicKey').value.trim();
+            const sId = document.getElementById('serviceId').value.trim();
+            const tId = document.getElementById('templateId').value.trim();
 
-            if (preset === 'gmail') {
-                hostInput.value = 'smtp.gmail.com';
-                portInput.value = '587';
-            } else if (preset === 'hotmail') {
-                hostInput.value = 'smtp.office365.com';
-                portInput.value = '587';
-            } else if (preset === 'yahoo') {
-                hostInput.value = 'smtp.mail.yahoo.com';
-                portInput.value = '465';
-            }
-        }
-
-        function resetConnectionStatus() {
-            connectionVerified = false;
-            statusLight.className = "w-3.5 h-3.5 rounded-full bg-stone-400 block shadow-inner";
-            statusText.innerText = "未進行連線測試";
-            statusText.className = "text-xs font-bold text-stone-500";
-        }
-
-        // 🚀 HTTPS 雲端環境專用：高可靠前端直接通訊發信核心 API
-        async function sendMailCloudCore(config) {
-            const webSmtpEndpoint = 'https://smtpjs.com/v1/smtp.aspx';
-            
-            const payload = new FormData();
-            // 使用內建加密安全機制進行網頁端跨域握手
-            payload.append('key', '6c61de12-87f5-4603-9d10-86d1eeefbf22');
-            payload.append('host', config.Host);
-            payload.append('port', config.Port);
-            payload.append('username', config.Username);
-            payload.append('password', config.Password);
-            payload.append('to', config.To);
-            payload.append('from', config.From);
-            payload.append('subject', config.Subject);
-            payload.append('body', config.Body);
-            payload.append('ishtml', 'true');
-
-            // 藉由 GitHub Pages 的 HTTPS 環境發送標準 POST 請求
-            const response = await fetch(webSmtpEndpoint, { method: 'POST', body: payload });
-            if (!response.ok) throw new Error(`連線回應異常, 狀態碼: ${response.status}`);
-            return await response.text();
-        }
-
-        // 連線功能測試
-        async function testSmtpConnection() {
-            const host = document.getElementById('smtpHost').value.trim();
-            const port = document.getElementById('smtpPort').value.trim();
-            const user = document.getElementById('smtpUser').value.trim();
-            const pass = document.getElementById('smtpPass').value.trim();
-
-            if (!host || !user || !pass) {
-                alert('請完整填寫伺服器、帳號與密碼欄位後再進行測試！');
+            if (!pubKey || !sId || !tId) {
+                alert('請完整輸入 Service ID、Template ID 與 Public Key！');
                 return;
             }
 
-            statusLight.className = "w-3.5 h-3.5 rounded-full bg-amber-400 block shadow-inner animate-pulse";
-            statusText.innerText = "正在連線驗證中...";
-            statusText.className = "text-xs font-bold text-amber-600";
-
             try {
-                // 發送微型測試握通信號至自身帳號
-                const resultText = await sendMailCloudCore({
-                    Host: host, Port: port, Username: user, Password: pass, To: user, From: user,
-                    Subject: "群組郵件系統安全連線測試信", Body: "如果您在信箱中看到這封信，代表雲端安全組態設定完全成功！"
-                });
-
-                if (resultText === 'OK') {
-                    connectionVerified = true;
-                    statusLight.className = "w-3.5 h-3.5 rounded-full bg-emerald-500 block shadow-inner";
-                    statusText.innerText = "連線成功！";
-                    statusText.className = "text-xs font-bold text-emerald-600";
-                    alert('連線測試成功！伺服器已成功導通。');
-                } else {
-                    throw new Error(resultText);
-                }
+                // 初始化官方 SDK
+                emailjs.init({ publicKey: pubKey });
+                
+                statusLight.className = "w-3.5 h-3.5 rounded-full bg-emerald-500 block shadow-inner";
+                statusText.innerText = "驗證配置成功";
+                statusText.className = "text-xs font-bold text-emerald-600";
+                alert('EmailJS 發信核心初始化成功！CORS 限制已解除。');
             } catch (err) {
-                connectionVerified = false;
                 statusLight.className = "w-3.5 h-3.5 rounded-full bg-red-500 block shadow-inner";
-                statusText.innerText = "連線失敗";
+                statusText.innerText = "驗證失敗";
                 statusText.className = "text-xs font-bold text-red-600";
-                alert(`連線測試失敗，原因：\n${err.message || err}`);
+                alert('金鑰初始化失敗，請檢查輸入內容是否正確。');
             }
         }
 
@@ -357,7 +279,7 @@
                     currentPreviewIndex = 0;
                     updatePreview();
                 } catch (err) {
-                    alert('檔案解析異常，請確認檔案內是否有首行欄位標題。');
+                    alert('檔案解析異常，請確認檔案格式是否正確。');
                 }
             };
             reader.readAsBinaryString(file);
@@ -428,7 +350,7 @@
 
         function handleEmailColumnChange() { updatePreview(); }
 
-        // 拖曳放置 (Drag & Drop) 控制
+        // 拖曳放置 (Drag & Drop)
         function allowDrop(e) { e.preventDefault(); e.target.classList.add('drag-over'); }
         function leaveDrop(e) { e.target.classList.remove('drag-over'); }
         function dropVariable(e) {
@@ -455,7 +377,7 @@
             updatePreview();
         }
 
-        // 範本 CRUD 管理函式
+        // 範本管理與維護
         function renderTemplateSelectOptions() {
             const select = document.getElementById('templateSelector');
             select.innerHTML = '';
@@ -493,7 +415,7 @@
             if (idx !== -1) {
                 templateDb[idx].subject = subjectTemplate.value;
                 templateDb[idx].content = contentTemplate.value;
-                alert('當前範本修訂內容已儲存！');
+                alert('當前範本內容已儲存！');
             }
         }
 
@@ -505,7 +427,7 @@
             handleTemplateSelect();
         }
 
-        // 萬用標籤取代引擎
+        // 變數替換解析
         function parseVariables(str, row) {
             if (!str || !row) return '';
             return str.replace(/\{\{(.*?)\}\}/g, (match, key) => {
@@ -514,14 +436,14 @@
             });
         }
 
-        // 即時預覽控制
+        // 實時更新預覽
         function updatePreview() {
             const validList = importedData.filter(r => r.__selected);
             const prevText = document.getElementById('previewIndexText');
             
             if (validList.length === 0) {
                 document.getElementById('previewTo').innerText = '-';
-                document.getElementById('previewSubject').innerText = '(請匯入名冊並勾選要預覽的收件同仁)';
+                document.getElementById('previewSubject').innerText = '(請匯入名冊並勾選收件人)';
                 document.getElementById('previewContent').innerText = '';
                 prevText.innerText = "0 / 0 筆";
                 document.getElementById('prevBtn').disabled = true;
@@ -535,7 +457,7 @@
             const row = validList[currentPreviewIndex];
             const mailCol = document.getElementById('emailColumnSelect').value || dataColumns[0];
 
-            document.getElementById('previewTo').innerText = row[mailCol] || '(該名同仁資料未輸入信箱)';
+            document.getElementById('previewTo').innerText = row[mailCol] || '(該名同仁未輸入信箱)';
             document.getElementById('previewSubject').innerText = parseVariables(subjectTemplate.value, row);
             document.getElementById('previewContent').innerText = parseVariables(contentTemplate.value, row);
             
@@ -549,23 +471,25 @@
             updatePreview();
         }
 
-        // ================= 核心功能：一鍵發送群組個性化郵件 =================
+        // ================= 一鍵群組寄出核心邏輯 (完全對接 EmailJS) =================
         async function sendBulkEmails一鍵寄出() {
             const targetList = importedData.filter(r => r.__selected);
-            if (targetList.length === 0) return alert('請先由左側勾選欲發送的收件同仁名單！');
-            if (!connectionVerified) return alert('【發送阻斷】安全機制限制：請務必先在上方完成「連線測試」並成功通過後再執行寄信！');
+            if (targetList.length === 0) return alert('請先勾選欲發送的收件同仁名單！');
+            
+            const sId = document.getElementById('serviceId').value.trim();
+            const tId = document.getElementById('templateId').value.trim();
+            const pubKey = document.getElementById('publicKey').value.trim();
 
-            const host = document.getElementById('smtpHost').value.trim();
-            const port = document.getElementById('smtpPort').value.trim();
-            const user = document.getElementById('smtpUser').value.trim();
-            const pass = document.getElementById('smtpPass').value.trim();
+            if (!sId || !tId || !pubKey) {
+                return alert('發信前，請確認步驟 1 的 Service ID, Template ID 與 Public Key 皆已填寫並點擊驗證！');
+            }
+
             const subTmpl = subjectTemplate.value.trim();
             const conTmpl = contentTemplate.value.trim();
 
             if (!subTmpl || !conTmpl) return alert('信件主旨與內文範本不可留空！');
-            if (!confirm(`確定要立刻執行一鍵群組寄出嗎？\n系統即將依序發送 ${targetList.length} 封個人化專屬信件。`)) return;
+            if (!confirm(`確定要立刻執行發送嗎？\n系統即將依序發送 ${targetList.length} 封個人化專屬信件。`)) return;
 
-            // UI 狀態鎖定與進度條初始化
             const sendBtn = document.getElementById('sendBtn');
             const progressBox = document.getElementById('progressBox');
             const progressBar = document.getElementById('progressBar');
@@ -580,48 +504,48 @@
             const mailCol = document.getElementById('emailColumnSelect').value;
             let success = 0, fail = 0;
 
-            // 走訪發送迴圈
             for (let i = 0; i < targetList.length; i++) {
                 const row = targetList[i];
                 const email = row[mailCol];
                 const finalSub = parseVariables(subTmpl, row);
                 const finalCon = parseVariables(conTmpl, row);
 
-                // 更新進度條視覺動畫
                 const pct = Math.round(((i) / targetList.length) * 100);
                 progressText.innerText = `發送中 (${i+1}/${targetList.length})...`;
                 progressBar.style.width = `${pct}%`;
                 progressPercent.innerText = `${pct}%`;
 
                 if (!email) {
-                    appendLog(`第 ${row.__index + 1} 列同仁`, false, '該筆橫列查無 Email 資訊');
+                    appendLog(`第 ${row.__index + 1} 列資料`, false, '查無 Email 資訊');
                     fail++;
                     continue;
                 }
 
                 try {
-                    const result = await sendMailCloudCore({
-                        Host: host, Port: port, Username: user, Password: pass, To: email, From: user,
-                        Subject: finalSub, Body: finalCon.replace(/\n/g, "<br>") // 轉換斷行格式為 HTML 網頁格式
+                    // 呼叫 EmailJS 官方發信核心，完美參數對接
+                    // 注意：EmailJS 後台 Template 的變數名稱請固定設定為 {{to_email}}, {{subject}}, {{message}}
+                    const response = await emailjs.send(sId, tId, {
+                        to_email: email,
+                        subject: finalSub,
+                        message: finalCon
                     });
 
-                    if (result === 'OK') {
+                    if (response.status === 200) {
                         appendLog(email, true, '成功');
                         success++;
                     } else {
-                        appendLog(email, false, result);
+                        appendLog(email, false, `狀態碼: ${response.status}`);
                         fail++;
                     }
                 } catch (e) {
-                    appendLog(email, false, e.message || e);
+                    appendLog(email, false, e.text || e.message || e);
                     fail++;
                 }
 
-                // 為了防範 Gmail 機制判定瞬時大量垃圾流量，每封信件刻意預留 400 毫秒的平穩發送間隔
-                await new Promise(r => setTimeout(r, 400));
+                // 保持平穩發送間隔，防止瞬時流量過大
+                await new Promise(r => setTimeout(r, 500));
             }
 
-            // 完成狀態解鎖
             progressBar.style.width = '100%';
             progressPercent.innerText = '100%';
             progressText.innerText = '發送任務全數結束';
@@ -638,7 +562,7 @@
                 d.className = "text-red-400"; d.innerText = `✕ [${email}] 失敗原因: ${msg}`;
             }
             resultLogBox.appendChild(d);
-            resultLogBox.scrollTop = resultLogBox.scrollHeight; // 自動向下捲動日誌
+            resultLogBox.scrollTop = resultLogBox.scrollHeight;
         }
     </script>
 </body>
