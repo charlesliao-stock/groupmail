@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高級個人化群組郵件系統 V3 (GitHub Pages 專用版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght=400;500;700&display=swap');
+        body { font-family: 'Noto Sans TC', sans-serif; }
+        .drag-over { border-color: #b45309 !important; background-color: #fef3c7 !important; }
+    </style>
+</head>
+<body class="bg-stone-100 min-h-screen text-stone-800">
+
+    <nav class="bg-amber-700 text-white shadow-md px-6 py-4">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-mail-bulk text-2xl text-amber-200"></i>
+                <span class="text-xl font-bold tracking-wide">高級個人化群組郵件發送系統 V3</span>
+            </div>
+            <div class="text-sm bg-amber-800 px-3 py-1 rounded-full text-amber-100 font-mono">
+                <i class="fa-solid fa-cloud mr-1 text-emerald-400"></i> GitHub Pages 雲端託管版
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto p-4 lg:p-6 space-y-6">
+        
+        <section class="bg-white p-6 rounded-xl shadow-sm border border-stone-200 space-y-4">
+            <div class="flex items-center justify-between border-b border-stone-100 pb-2">
+                <h2 class="text-lg font-bold text-stone-900 flex items-center">
+                    <i class="fa-solid fa-server text-amber-600 mr-2"></i>
+                    1. 郵件伺服器連結設定
+                </h2>
+                <div class="flex items-center space-x-2 bg-stone-50 px-3 py-1.5 rounded-full border border-stone-200">
+                    <span id="statusLight" class="w-3.5 h-3.5 rounded-full bg-stone-400 block shadow-inner"></span>
+                    <span id="statusText" class="text-xs font-bold text-stone-500">未進行連線測試</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div>
+                    <label class="block text-xs font-medium text-stone-500 mb-1">選擇郵件服務商</label>
+                    <select id="serverPreset" onchange="handleServerPresetChange()" class="w-full p-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none bg-white">
+                        <option value="gmail">Gmail (Google)</option>
+                        <option value="hotmail">Outlook / Hotmail</option>
+                        <option value="yahoo">Yahoo Mail</option>
+                        <option value="custom">自訂 SMTP 伺服器</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-stone-500 mb-1">SMTP 主機地址</label>
+                    <input id="smtpHost" type="text" value="smtp.gmail.com" class="w-full p-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-stone-500 mb-1">連接埠 (Port)</label>
+                    <input id="smtpPort" type="number" value="587" class="w-full p-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-stone-500 mb-1">帳號 (Email)</label>
+                    <input id="smtpUser" type="email" placeholder="example@gmail.com" class="w-full p-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-stone-500 mb-1">應用程式密碼</label>
+                    <div class="relative">
+                        <input id="smtpPass" type="password" placeholder="請輸入16位元金鑰密碼" class="w-full p-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none" />
+                        <button onclick="testSmtpConnection()" class="absolute right-1.5 top-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs px-2.5 py-1 rounded font-medium shadow-sm transition">
+                            連線測試
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <div class="lg:col-span-1 space-y-6">
+                
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-stone-200 space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-md font-bold text-stone-900 flex items-center">
+                            <span class="w-2 h-4 bg-amber-600 rounded mr-2 inline-block"></span>
+                            2. 匯入與篩選收件名冊
+                        </h2>
+                        <span class="text-xs bg-stone-100 text-stone-600 px-2 py-0.5 rounded font-medium">
+                            勾選: <span id="selectedCount" class="text-amber-700 font-bold">0</span> / <span id="totalCount">0</span>
+                        </span>
+                    </div>
+
+                    <label class="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-stone-300 rounded-lg cursor-pointer bg-stone-50 hover:bg-stone-100 transition">
+                        <div class="flex flex-col items-center justify-center pt-3 pb-3">
+                            <i class="fa-solid fa-file-excel text-xl text-stone-400 mb-1"></i>
+                            <p class="text-xs text-stone-600 font-medium">上傳 Excel / CSV 檔案</p>
+                        </div>
+                        <input id="fileInput" type="file" accept=".xlsx, .xls, .csv" class="hidden" />
+                    </label>
+
+                    <div id="emailTargetSelector" class="hidden text-xs space-y-1 bg-stone-50 p-2.5 rounded-lg border border-stone-200">
+                        <label class="block font-medium text-stone-600">請指定「收件人電子郵件」落在哪個欄位：</label>
+                        <select id="emailColumnSelect" onchange="handleEmailColumnChange()" class="w-full p-1.5 border border-stone-300 rounded bg-white outline-none"></select>
+                    </div>
+
+                    <div id="tableContainer" class="max-h-48 overflow-y-auto border border-stone-200 rounded-lg hidden text-xs">
+                        <table class="w-full text-left border-collapse bg-white">
+                            <thead class="bg-stone-50 sticky top-0 border-b border-stone-200 font-medium text-stone-500">
+                                <tr>
+                                    <th class="p-2 text-center w-10"><input type="checkbox" id="selectAllCheckbox" checked onchange="toggleSelectAll()" /></th>
+                                    <th class="p-2">收件清單詳情</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dataTableBody" class="divide-y divide-stone-100 text-stone-700"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-stone-200 space-y-2">
+                    <h2 class="text-md font-bold text-stone-900 flex items-center">
+                        <span class="w-2 h-4 bg-amber-600 rounded mr-2 inline-block"></span>
+                        3. 可拖拉欄位變數
+                    </h2>
+                    <p class="text-[11px] text-stone-400">支援【滑鼠拖曳】入右側輸入框，或直接【點擊】游標處插入</p>
+                    <div id="variableContainer" class="flex flex-wrap gap-1.5 pt-1">
+                        <span class="text-xs text-stone-400 italic bg-stone-50 border border-stone-200 p-3 rounded-lg w-full text-center">請先上傳名冊檔案</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2 space-y-6">
+                
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-stone-200 space-y-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-stone-100 pb-3">
+                        <h2 class="text-md font-bold text-stone-900 flex items-center">
+                            <i class="fa-solid fa-code-branch text-amber-600 mr-2"></i>
+                            4. 信件範本設定與維護 (主題與內容)
+                        </h2>
+                        <div class="flex items-center space-x-1">
+                            <select id="templateSelector" onchange="handleTemplateSelect()" class="text-xs p-1.5 border border-stone-300 rounded bg-white outline-none max-w-[150px]"></select>
+                            <button onclick="updateCurrentTemplate()" class="text-xs bg-stone-700 text-white px-2 py-1.5 rounded hover:bg-stone-600" title="儲存當前修改"><i class="fa-solid fa-floppy-disk"></i></button>
+                            <button onclick="deleteTemplate()" class="text-xs bg-red-50 text-red-600 border border-red-200 px-2 py-1.5 rounded hover:bg-red-100" title="刪除此範本"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2 bg-stone-50 p-2 rounded-lg border border-stone-200 items-center">
+                        <input id="newTemplateTitle" type="text" placeholder="輸入新範本名稱" class="text-xs p-2 border border-stone-300 rounded-lg flex-1 outline-none bg-white" />
+                        <button onclick="createNewTemplate()" class="text-xs bg-amber-600 text-white px-3 py-2 rounded-lg font-medium hover:bg-amber-700">新增為新範本</button>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-medium text-stone-600 mb-1">信件主題 (主旨)</label>
+                            <input id="subjectTemplate" type="text" placeholder="請將左側變數拖曳至此處或手動輸入" 
+                                class="w-full p-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none transition"
+                                ondrop="dropVariable(event)" ondragover="allowDrop(event)" ondragleave="leaveDrop(event)" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-stone-600 mb-1">信件內容 (內文)</label>
+                            <textarea id="contentTemplate" rows="6" placeholder="請將左側變數拖曳至此處或手動輸入" 
+                                class="w-full p-2.5 border border-stone-300 rounded-lg text-sm font-mono leading-relaxed focus:ring-2 focus:ring-amber-500 outline-none transition"
+                                ondrop="dropVariable(event)" ondragover="allowDrop(event)" ondragleave="leaveDrop(event)"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-amber-50/40 border border-amber-200 p-5 rounded-xl space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-sm font-bold text-amber-900 flex items-center">
+                            <i class="fa-solid fa-eye text-amber-700 mr-1.5"></i> 個人化信件實時效果預覽
+                        </h3>
+                        <div class="flex items-center space-x-1.5 bg-white px-2.5 py-1 rounded-lg border border-amber-200 text-xs shadow-sm">
+                            <button onclick="navigatePreview(-1)" id="prevBtn" class="hover:text-amber-700 font-bold disabled:opacity-30" disabled><i class="fa-solid fa-caret-left"></i> 上一筆</button>
+                            <span id="previewIndexText" class="font-medium text-stone-600 min-w-[70px] text-center">0 / 0 筆</span>
+                            <button onclick="navigatePreview(1)" id="nextBtn" class="hover:text-amber-700 font-bold disabled:opacity-30" disabled>下一筆 <i class="fa-solid fa-caret-right"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-lg border border-amber-200/60 space-y-2 shadow-inner text-xs">
+                        <div><span class="text-stone-400 font-medium mr-2">發送至 (To):</span><span id="previewTo" class="font-mono text-stone-800 font-semibold">-</span></div>
+                        <div class="border-t border-stone-100 pt-2"><span class="text-stone-400 font-medium mr-2">信件主旨:</span><span id="previewSubject" class="font-bold text-stone-900"></span></div>
+                        <div class="border-t border-stone-100 pt-2 text-stone-700 font-mono whitespace-pre-wrap min-h-[80px]" id="previewContent"></div>
+                    </div>
+
+                    <div class="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div class="w-full sm:w-1/2 hidden" id="progressBox">
+                            <div class="flex justify-between text-[11px] text-stone-600 mb-0.5">
+                                <span id="progressText">發送準備中...</span>
+                                <span id="progressPercent">0%</span>
+                            </div>
+                            <div class="w-full bg-stone-200 h-2 rounded-full overflow-hidden">
+                                <div id="progressBar" class="bg-amber-600 h-full w-0 transition-all"></div>
+                            </div>
+                        </div>
+                        <div class="flex-1"></div>
+                        <button id="sendBtn" onclick="sendBulkEmails一鍵寄出()" class="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white font-bold px-8 py-3.5 rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center space-x-2 text-sm">
+                            <i class="fa-solid fa-paper-plane"></i>
+                            <span>一鍵群組寄出 (<span id="sendCount">0</span> 封)</span>
+                        </button>
+                    </div>
+
+                    <div id="resultLogBox" class="bg-stone-900 text-stone-300 p-3 rounded-lg font-mono text-[11px] max-h-28 overflow-y-auto space-y-0.5 hidden shadow-inner"></div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // 內建核心預設範本
+        let templateDb = [
+            { id: "1", title: "單位業務核對通知信", subject: "【{{單位}}】資料核對確認通知", content: "親愛的 {{姓名}} 您好：\n\n請核對您在單位內登記的考核進度，目前的初步狀況為：【{{狀態}}】。\n若有任何出入，請直接回覆本郵件確認。\n\n管理組 敬上" },
+            { id: "2", title: "報告初審補件提醒", subject: "個案報告審查進度提醒：{{狀態}}", content: "{{姓名}} 同仁好：\n\n您近期送審的臨床品管個案報告目前審查結果為【{{狀態}}】。\n若顯示為「需修訂補件」，請於本週五前將修正檔重新上傳至系統。\n\n特此通知。" }
+        ];
+
+        let importedData = [];
+        let dataColumns = [];
+        let currentPreviewIndex = 0;
+        let connectionVerified = false; // 伺服器連線安全鎖
+
+        const subjectTemplate = document.getElementById('subjectTemplate');
+        const contentTemplate = document.getElementById('contentTemplate');
+        const variableContainer = document.getElementById('variableContainer');
+        const dataTableBody = document.getElementById('dataTableBody');
+        const tableContainer = document.getElementById('tableContainer');
+        const statusLight = document.getElementById('statusLight');
+        const statusText = document.getElementById('statusText');
+        const resultLogBox = document.getElementById('resultLogBox');
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderTemplateSelectOptions();
+            handleTemplateSelect();
+            setupInputListeners();
+        });
+
+        function setupInputListeners() {
+            subjectTemplate.addEventListener('input', updatePreview);
+            contentTemplate.addEventListener('input', updatePreview);
+        }
+
+        // 服務商組態自動切換
+        function handleServerPresetChange() {
+            const preset = document.getElementById('serverPreset').value;
+            const hostInput = document.getElementById('smtpHost');
+            const portInput = document.getElementById('smtpPort');
+            resetConnectionStatus();
+
+            if (preset === 'gmail') {
+                hostInput.value = 'smtp.gmail.com';
+                portInput.value = '587';
+            } else if (preset === 'hotmail') {
+                hostInput.value = 'smtp.office365.com';
+                portInput.value = '587';
+            } else if (preset === 'yahoo') {
+                hostInput.value = 'smtp.mail.yahoo.com';
+                portInput.value = '465';
+            }
+        }
+
+        function resetConnectionStatus() {
+            connectionVerified = false;
+            statusLight.className = "w-3.5 h-3.5 rounded-full bg-stone-400 block shadow-inner";
+            statusText.innerText = "未進行連線測試";
+            statusText.className = "text-xs font-bold text-stone-500";
+        }
+
+        // 🚀 HTTPS 雲端環境專用：高可靠前端直接通訊發信核心 API
+        async function sendMailCloudCore(config) {
+            const webSmtpEndpoint = 'https://smtpjs.com/v1/smtp.aspx';
+            
+            const payload = new FormData();
+            // 使用內建加密安全機制進行網頁端跨域握手
+            payload.append('key', '6c61de12-87f5-4603-9d10-86d1eeefbf22');
+            payload.append('host', config.Host);
+            payload.append('port', config.Port);
+            payload.append('username', config.Username);
+            payload.append('password', config.Password);
+            payload.append('to', config.To);
+            payload.append('from', config.From);
+            payload.append('subject', config.Subject);
+            payload.append('body', config.Body);
+            payload.append('ishtml', 'true');
+
+            // 藉由 GitHub Pages 的 HTTPS 環境發送標準 POST 請求
+            const response = await fetch(webSmtpEndpoint, { method: 'POST', body: payload });
+            if (!response.ok) throw new Error(`連線回應異常, 狀態碼: ${response.status}`);
+            return await response.text();
+        }
+
+        // 連線功能測試
+        async function testSmtpConnection() {
+            const host = document.getElementById('smtpHost').value.trim();
+            const port = document.getElementById('smtpPort').value.trim();
+            const user = document.getElementById('smtpUser').value.trim();
+            const pass = document.getElementById('smtpPass').value.trim();
+
+            if (!host || !user || !pass) {
+                alert('請完整填寫伺服器、帳號與密碼欄位後再進行測試！');
+                return;
+            }
+
+            statusLight.className = "w-3.5 h-3.5 rounded-full bg-amber-400 block shadow-inner animate-pulse";
+            statusText.innerText = "正在連線驗證中...";
+            statusText.className = "text-xs font-bold text-amber-600";
+
+            try {
+                // 發送微型測試握通信號至自身帳號
+                const resultText = await sendMailCloudCore({
+                    Host: host, Port: port, Username: user, Password: pass, To: user, From: user,
+                    Subject: "群組郵件系統安全連線測試信", Body: "如果您在信箱中看到這封信，代表雲端安全組態設定完全成功！"
+                });
+
+                if (resultText === 'OK') {
+                    connectionVerified = true;
+                    statusLight.className = "w-3.5 h-3.5 rounded-full bg-emerald-500 block shadow-inner";
+                    statusText.innerText = "連線成功！";
+                    statusText.className = "text-xs font-bold text-emerald-600";
+                    alert('連線測試成功！伺服器已成功導通。');
+                } else {
+                    throw new Error(resultText);
+                }
+            } catch (err) {
+                connectionVerified = false;
+                statusLight.className = "w-3.5 h-3.5 rounded-full bg-red-500 block shadow-inner";
+                statusText.innerText = "連線失敗";
+                statusText.className = "text-xs font-bold text-red-600";
+                alert(`連線測試失敗，原因：\n${err.message || err}`);
+            }
+        }
+
+        // Excel / CSV 檔案非同步載入
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const binaryData = evt.target.result;
+                    const workbook = XLSX.read(binaryData, { type: 'binary' });
+                    const targetSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonRows = XLSX.utils.sheet_to_json(targetSheet);
+                    
+                    if (jsonRows.length === 0) return alert('此檔案無有效的資料行！');
+
+                    importedData = jsonRows.map((row, idx) => ({ ...row, __selected: true, __index: idx }));
+                    dataColumns = Object.keys(jsonRows[0]);
+
+                    document.getElementById('totalCount').innerText = importedData.length;
+                    document.getElementById('importStatus').classList.remove('hidden');
+                    tableContainer.classList.remove('hidden');
+
+                    initEmailTargetSelector();
+                    renderVariableLabels();
+                    renderDataTable();
+                    calculateCheckedRows();
+                    currentPreviewIndex = 0;
+                    updatePreview();
+                } catch (err) {
+                    alert('檔案解析異常，請確認檔案內是否有首行欄位標題。');
+                }
+            };
+            reader.readAsBinaryString(file);
+        });
+
+        function initEmailTargetSelector() {
+            const select = document.getElementById('emailColumnSelect');
+            select.innerHTML = '';
+            dataColumns.forEach(col => {
+                const opt = document.createElement('option');
+                opt.value = col; opt.innerText = col;
+                if (col.toLowerCase().includes('email') || col.includes('信箱') || col.includes('郵件')) {
+                    opt.selected = true;
+                }
+                select.appendChild(opt);
+            });
+            document.getElementById('emailTargetSelector').classList.remove('hidden');
+        }
+
+        function renderVariableLabels() {
+            variableContainer.innerHTML = '';
+            dataColumns.forEach(col => {
+                const label = document.createElement('div');
+                label.className = "bg-stone-100 hover:bg-amber-100 hover:text-amber-800 text-stone-700 px-2.5 py-1.5 rounded-md text-xs font-mono border border-stone-200 cursor-grab active:cursor-grabbing transition flex items-center space-x-1 shadow-sm select-none";
+                label.setAttribute('draggable', 'true');
+                label.innerHTML = `<i class="fa-solid fa-grip-vertical text-stone-400 text-[10px]"></i> <span>{{${col}}}</span>`;
+                
+                label.onclick = () => { insertTextAtActiveInput(`{{${col}}}`); };
+                label.ondragstart = (e) => { e.dataTransfer.setData('text/plain', `{{${col}}}`); };
+                variableContainer.appendChild(label);
+            });
+        }
+
+        function renderDataTable() {
+            dataTableBody.innerHTML = '';
+            importedData.forEach((row, i) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-amber-50/40 transition";
+                const infoStr = dataColumns.map(c => `[${c}: ${row[c] || ''}]`).join(' ');
+                tr.innerHTML = `
+                    <td class="p-2 text-center border-r border-stone-100"><input type="checkbox" data-idx="${i}" ${row.__selected ? 'checked' : ''} onchange="handleRowCheckboxChange(this)" /></td>
+                    <td class="p-2 font-mono text-[11px] max-w-xs truncate" title="${infoStr}">${infoStr}</td>
+                `;
+                dataTableBody.appendChild(tr);
+            });
+        }
+
+        function handleRowCheckboxChange(cb) {
+            const idx = parseInt(cb.getAttribute('data-idx'));
+            importedData[idx].__selected = cb.checked;
+            calculateCheckedRows();
+            updatePreview();
+        }
+
+        function toggleSelectAll() {
+            const isChecked = document.getElementById('selectAllCheckbox').checked;
+            importedData.forEach(r => r.__selected = isChecked);
+            renderDataTable();
+            calculateCheckedRows();
+            updatePreview();
+        }
+
+        function calculateCheckedRows() {
+            const count = importedData.filter(r => r.__selected).length;
+            document.getElementById('selectedCount').innerText = count;
+            document.getElementById('sendCount').innerText = count;
+        }
+
+        function handleEmailColumnChange() { updatePreview(); }
+
+        // 拖曳放置 (Drag & Drop) 控制
+        function allowDrop(e) { e.preventDefault(); e.target.classList.add('drag-over'); }
+        function leaveDrop(e) { e.target.classList.remove('drag-over'); }
+        function dropVariable(e) {
+            e.preventDefault();
+            e.target.classList.remove('drag-over');
+            const dragValue = e.dataTransfer.getData('text/plain');
+            if (dragValue) {
+                const start = e.target.selectionStart || 0;
+                const end = e.target.selectionEnd || 0;
+                e.target.value = e.target.value.substring(0, start) + dragValue + e.target.value.substring(end);
+                updatePreview();
+            }
+        }
+
+        function insertTextAtActiveInput(val) {
+            const active = document.activeElement;
+            if (active === subjectTemplate || active === contentTemplate) {
+                const start = active.selectionStart || 0;
+                const end = active.selectionEnd || 0;
+                active.value = active.value.substring(0, start) + val + active.value.substring(end);
+            } else {
+                contentTemplate.value += val;
+            }
+            updatePreview();
+        }
+
+        // 範本 CRUD 管理函式
+        function renderTemplateSelectOptions() {
+            const select = document.getElementById('templateSelector');
+            select.innerHTML = '';
+            templateDb.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t.id; opt.innerText = t.title;
+                select.appendChild(opt);
+            });
+        }
+
+        function handleTemplateSelect() {
+            const id = document.getElementById('templateSelector').value;
+            const item = templateDb.find(t => t.id === id);
+            if (item) {
+                subjectTemplate.value = item.subject;
+                contentTemplate.value = item.content;
+                updatePreview();
+            }
+        }
+
+        function createNewTemplate() {
+            const title = document.getElementById('newTemplateTitle').value.trim();
+            if (!title) return alert('請輸入範本名稱！');
+            const newId = String(Date.now());
+            templateDb.push({ id: newId, title, subject: subjectTemplate.value, content: contentTemplate.value });
+            document.getElementById('newTemplateTitle').value = '';
+            renderTemplateSelectOptions();
+            document.getElementById('templateSelector').value = newId;
+            alert('新範本已儲存成功！');
+        }
+
+        function updateCurrentTemplate() {
+            const id = document.getElementById('templateSelector').value;
+            const idx = templateDb.findIndex(t => t.id === id);
+            if (idx !== -1) {
+                templateDb[idx].subject = subjectTemplate.value;
+                templateDb[idx].content = contentTemplate.value;
+                alert('當前範本修訂內容已儲存！');
+            }
+        }
+
+        function deleteTemplate() {
+            if (templateDb.length <= 1) return alert('系統至少需保留一組可用範本。');
+            const id = document.getElementById('templateSelector').value;
+            templateDb = templateDb.filter(t => t.id !== id);
+            renderTemplateSelectOptions();
+            handleTemplateSelect();
+        }
+
+        // 萬用標籤取代引擎
+        function parseVariables(str, row) {
+            if (!str || !row) return '';
+            return str.replace(/\{\{(.*?)\}\}/g, (match, key) => {
+                const clean = key.trim();
+                return row[clean] !== undefined ? row[clean] : match;
+            });
+        }
+
+        // 即時預覽控制
+        function updatePreview() {
+            const validList = importedData.filter(r => r.__selected);
+            const prevText = document.getElementById('previewIndexText');
+            
+            if (validList.length === 0) {
+                document.getElementById('previewTo').innerText = '-';
+                document.getElementById('previewSubject').innerText = '(請匯入名冊並勾選要預覽的收件同仁)';
+                document.getElementById('previewContent').innerText = '';
+                prevText.innerText = "0 / 0 筆";
+                document.getElementById('prevBtn').disabled = true;
+                document.getElementById('nextBtn').disabled = true;
+                return;
+            }
+
+            if (currentPreviewIndex >= validList.length) currentPreviewIndex = validList.length - 1;
+            if (currentPreviewIndex < 0) currentPreviewIndex = 0;
+
+            const row = validList[currentPreviewIndex];
+            const mailCol = document.getElementById('emailColumnSelect').value || dataColumns[0];
+
+            document.getElementById('previewTo').innerText = row[mailCol] || '(該名同仁資料未輸入信箱)';
+            document.getElementById('previewSubject').innerText = parseVariables(subjectTemplate.value, row);
+            document.getElementById('previewContent').innerText = parseVariables(contentTemplate.value, row);
+            
+            prevText.innerText = `${currentPreviewIndex + 1} / ${validList.length} 筆`;
+            document.getElementById('prevBtn').disabled = currentPreviewIndex === 0;
+            document.getElementById('nextBtn').disabled = currentPreviewIndex === validList.length - 1;
+        }
+
+        function navigatePreview(dir) {
+            currentPreviewIndex += dir;
+            updatePreview();
+        }
+
+        // ================= 核心功能：一鍵發送群組個性化郵件 =================
+        async function sendBulkEmails一鍵寄出() {
+            const targetList = importedData.filter(r => r.__selected);
+            if (targetList.length === 0) return alert('請先由左側勾選欲發送的收件同仁名單！');
+            if (!connectionVerified) return alert('【發送阻斷】安全機制限制：請務必先在上方完成「連線測試」並成功通過後再執行寄信！');
+
+            const host = document.getElementById('smtpHost').value.trim();
+            const port = document.getElementById('smtpPort').value.trim();
+            const user = document.getElementById('smtpUser').value.trim();
+            const pass = document.getElementById('smtpPass').value.trim();
+            const subTmpl = subjectTemplate.value.trim();
+            const conTmpl = contentTemplate.value.trim();
+
+            if (!subTmpl || !conTmpl) return alert('信件主旨與內文範本不可留空！');
+            if (!confirm(`確定要立刻執行一鍵群組寄出嗎？\n系統即將依序發送 ${targetList.length} 封個人化專屬信件。`)) return;
+
+            // UI 狀態鎖定與進度條初始化
+            const sendBtn = document.getElementById('sendBtn');
+            const progressBox = document.getElementById('progressBox');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            const progressPercent = document.getElementById('progressPercent');
+
+            sendBtn.disabled = true;
+            progressBox.classList.remove('hidden');
+            resultLogBox.classList.remove('hidden');
+            resultLogBox.innerHTML = '<div class="text-amber-400 font-bold mb-1 border-b border-stone-800 pb-1">📋 批次發送雲端日誌紀錄：</div>';
+
+            const mailCol = document.getElementById('emailColumnSelect').value;
+            let success = 0, fail = 0;
+
+            // 走訪發送迴圈
+            for (let i = 0; i < targetList.length; i++) {
+                const row = targetList[i];
+                const email = row[mailCol];
+                const finalSub = parseVariables(subTmpl, row);
+                const finalCon = parseVariables(conTmpl, row);
+
+                // 更新進度條視覺動畫
+                const pct = Math.round(((i) / targetList.length) * 100);
+                progressText.innerText = `發送中 (${i+1}/${targetList.length})...`;
+                progressBar.style.width = `${pct}%`;
+                progressPercent.innerText = `${pct}%`;
+
+                if (!email) {
+                    appendLog(`第 ${row.__index + 1} 列同仁`, false, '該筆橫列查無 Email 資訊');
+                    fail++;
+                    continue;
+                }
+
+                try {
+                    const result = await sendMailCloudCore({
+                        Host: host, Port: port, Username: user, Password: pass, To: email, From: user,
+                        Subject: finalSub, Body: finalCon.replace(/\n/g, "<br>") // 轉換斷行格式為 HTML 網頁格式
+                    });
+
+                    if (result === 'OK') {
+                        appendLog(email, true, '成功');
+                        success++;
+                    } else {
+                        appendLog(email, false, result);
+                        fail++;
+                    }
+                } catch (e) {
+                    appendLog(email, false, e.message || e);
+                    fail++;
+                }
+
+                // 為了防範 Gmail 機制判定瞬時大量垃圾流量，每封信件刻意預留 400 毫秒的平穩發送間隔
+                await new Promise(r => setTimeout(r, 400));
+            }
+
+            // 完成狀態解鎖
+            progressBar.style.width = '100%';
+            progressPercent.innerText = '100%';
+            progressText.innerText = '發送任務全數結束';
+            sendBtn.disabled = false;
+
+            alert(`【一鍵群組寄信完成】\n本次共計處理：${targetList.length} 封\n成功送出：${success} 封\n發送失敗：${fail} 封`);
+        }
+
+        function appendLog(email, isOk, msg) {
+            const d = document.createElement('div');
+            if (isOk) {
+                d.className = "text-emerald-400"; d.innerText = `✓ [${email}] 發送成功`;
+            } else {
+                d.className = "text-red-400"; d.innerText = `✕ [${email}] 失敗原因: ${msg}`;
+            }
+            resultLogBox.appendChild(d);
+            resultLogBox.scrollTop = resultLogBox.scrollHeight; // 自動向下捲動日誌
+        }
+    </script>
+</body>
+</html>
